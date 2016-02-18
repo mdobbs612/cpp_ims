@@ -1,49 +1,61 @@
-#define WINVER 0x0501
+#include "client.h"
 
-#include <winsock2.h>
-#include <windows.h>
-#include <ws2tcpip.h>
-#include <stdlib.h>
-#include <stdio.h>
 
-// compile with g++ myclient.cpp -l ws2_32 -o serv (or whatever name)
-// the -l ws2_32 is the important part
 
-#define BUFFER_LEN 512
-#define PORT_NO "27011"
+#define PORT_NO "27012"
 
 int main(int argc, char **argv)
 {
-	WORD wVersionRequested;
-	WSADATA wsaData;
+	printf("Client\n");
 	int err;
 
-	SOCKET ConnectSocket = INVALID_SOCKET;
+	int ConnectSocket = -1;
 
-	struct addrinfo *result = NULL, *res_ptr = NULL, hints;
+	//struct addrinfo *result = NULL, *res_ptr = NULL, hints;
 
-	const char *sendbuffer = "This is my test string";
-	char recvbuf[BUFFER_LEN];
-    int recvbuflen = BUFFER_LEN;
-    int recvResult;
-    int sendResult;
+	char sendBuf[BUFFER_LEN];
+	char recvBuf[BUFFER_LEN];
+	// int recvResult;
+	// int sendResult;
 
-    // check if the input was done correctly
-    if (argc != 2) {
-    	fprintf(stderr, "usage: call client.exe with the server-name as the first parameter\n");
-    	return 1;
-    }
-
-    // initializing winsock
-
-	wVersionRequested = MAKEWORD( 2, 2 );
-
-	err = WSAStartup( wVersionRequested, &wsaData );
-	if ( err != 0 ) {
-		fprintf(stderr, "WSAStartup failure. Error: %d\n", err);
-        return 1;
+	// check if the input was done correctly
+	if (argc != 2) {
+		fprintf(stderr, "usage: call client.exe with the server-name as the first parameter\n");
+		return 1;
 	}
 
+	// initializing winsock
+
+
+
+  struct sockaddr_in addr;
+  
+  if((ConnectSocket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+  {
+    cout << "Error creating socket\n";
+    return 1;
+  }
+
+  memset(&addr, '0', sizeof(addr));
+
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(27012);
+
+  if(inet_pton(addr.sin_family, argv[1], &(addr.sin_addr)) <= 0)
+  {
+    cout << "Error inet_pton\n";
+    return 1;
+  }
+
+  if(connect(ConnectSocket, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+  {
+    cout << "Connect failure\n";
+    return 1;
+  }
+
+
+
+/*
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
@@ -51,75 +63,112 @@ int main(int argc, char **argv)
 
 	// server address and port
 	err = getaddrinfo(NULL, PORT_NO, &hints, &result);
-	if ( err != 0) {
+	if (err != 0) {
 		fprintf(stderr, "getaddrinfo failure. Error: %d\n", err);
-		WSACleanup();
 		return 1;
 	}
 
 	// try connecting to addr in result until one succeeds
-	for(res_ptr = result; res_ptr != NULL; res_ptr = res_ptr->ai_next) {
+	for (res_ptr = result; res_ptr != NULL; res_ptr = res_ptr->ai_next) {
 
-		ConnectSocket = socket(res_ptr->ai_family, res_ptr->ai_socktype, 
+		ConnectSocket = socket(res_ptr->ai_family, res_ptr->ai_socktype,
 			res_ptr->ai_protocol);
-		if (ConnectSocket == INVALID_SOCKET) {
-			fprintf(stderr, "socket failure. Error: %d\n", WSAGetLastError());
-			WSACleanup();
+		if (ConnectSocket < 0) {
+      cout << "Socket failure!\n";
 			return 1;
 		}
 
-		err = connect( ConnectSocket, res_ptr->ai_addr, 
+		err = connect(ConnectSocket, res_ptr->ai_addr,
 			(int)res_ptr->ai_addrlen);
-		if (err == SOCKET_ERROR) {
-			closesocket(ConnectSocket);
-			ConnectSocket = INVALID_SOCKET;
+		if (err != 0) {
+			close(ConnectSocket);
+			ConnectSocket = -1;
+      cout << "Connect errrror\n" << err << endl;
 			continue;
 		}
-		break;
+		else break;
 	}
 
 	freeaddrinfo(result);
 
-	if(ConnectSocket == INVALID_SOCKET) {
-		fprintf(stderr, "Error connecting to server\n");
-		WSACleanup();
+	if (ConnectSocket == -1) {
+		cout << "Error connecting to server\n";
 		return 1;
 	}
+	*/
 
-	// Sending a buffer
-	sendResult = send(ConnectSocket, sendbuffer, (int)strlen(sendbuffer), 0);
-	if (sendResult == SOCKET_ERROR) {
-		fprintf(stderr, "send failure. Error: %d\n", WSAGetLastError());
-		closesocket(ConnectSocket);
-		WSACleanup();
-		return 1;
-	}
-	printf("Bytes Sent: %d\n", sendResult);
-
-	//  shutting down the connection
-	err = shutdown(ConnectSocket, SD_SEND);
-	if (err == SOCKET_ERROR) {
-		fprintf(stderr, "shutdown failure. Error: %d\n", WSAGetLastError());
-		closesocket(ConnectSocket);
-		WSACleanup();
-		return 1;
+	while (1) {
+		memset(sendBuf, 0, BUFFER_LEN);
+		memset(recvBuf, 0, BUFFER_LEN);
+		//fgets(sendBuf, BUFFER_LEN, stdin);
+		char cmd[20];
+		char arg[20];
+		cin >> cmd >> arg;
+		//memcpy(sendBuf, ParseInput(cmd, arg), strlen(sendBuf));
+    //cout << "SENDING " << sendBuf << endl;
+    cout << "PARSA " << ParseInput(cmd, arg) << endl;
+		cout << "SEND: " << send(ConnectSocket, ParseInput(cmd, arg), 244, 0) << endl;
+		recv(ConnectSocket, recvBuf, BUFFER_LEN, 0);
+		ParseString(recvBuf);
+		//printf("%s", recvBuf);
 	}
 
+	close(ConnectSocket);
 
-	// receive until the server closes the connection
-	do {
-
-		recvResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-		if ( recvResult > 0)
-			printf("Bytes Received: %d\n", recvResult);
-		else if (recvResult == 0)
-			printf("Connection has been closed\n");
-		else 
-			fprintf(stderr, "recv failure. Error: %d\n", WSAGetLastError());
-	} while (recvResult > 0);
-
-	closesocket(ConnectSocket);
-	WSACleanup();
 
 	return 0;
 }
+
+const char*ParseInput(const char*cmd, const char* arg) {
+  cout << "Parsing Input\n";
+	if (!(strcmp("register", cmd))) {
+    cout << "Hi, in here with: " << arg << endl;
+		Action_Msg *msg;
+		msg = new Action_Msg(REGISTER, "testa", arg, "");
+    //cout << "SERLS " << msg->serialize() << endl;
+		return msg->serialize();
+	}
+	if (!(strcmp("login", cmd))) {
+		Action_Msg *msg;
+		msg = new Action_Msg(LOGIN, "", arg, "");
+		return msg->serialize();
+	}
+	if (!(strcmp("logout", cmd))) {
+		Action_Msg *msg;
+		msg = new Action_Msg(LOGOUT, "", "", "");
+		return msg->serialize();
+	}
+	if (!(strcmp("add", cmd))) {
+		Action_Msg *msg;
+		msg = new Action_Msg(ADD_FRIEND, "", arg, "");
+		return msg->serialize();
+	}
+	if (!(strcmp("rem", cmd))) {
+		Action_Msg *msg;
+		msg = new Action_Msg(REM_FRIEND, "", arg, "");
+		return msg->serialize();
+	}
+	if (!(strcmp("status", cmd))) {
+		Action_Msg *msg;
+		if (!(strcmp("all", arg))) {
+			msg = new Action_Msg(STATUS_ALL, "", "", "");
+		}
+		else msg = new Action_Msg(STATUS_ONE, "", arg, "");
+		return msg->serialize();
+	}
+	if (!(strcmp("msg", cmd))) {
+		int i = 0;
+		char im[200];
+		do {
+			if (i) cout << "ERROR: Message must be less than 200 characters\n";
+			cout << "Enter the message you'd like to send\n";
+			cin >> im;
+		} while (strlen(im) <= 200);
+
+		Action_Msg *msg;
+		msg = new Action_Msg(LOGIN, "", arg, im);
+		return msg->serialize();
+	}
+
+	return "OOps\n";
+} 
