@@ -99,7 +99,7 @@ void * StartServer(void * p)
 
 	while (num_clients < MAX_CLIENTS) {
     //addrlen = sizeof remoteaddr;
-cout << "HEY" << endl;
+    //cout << "HEY" << endl;
 		client_socket = accept(ListenSocket, NULL, NULL);
 		pthread_t client_thread;
 		cout << "WE GOT ANOTHER" << endl;
@@ -142,7 +142,8 @@ void * ClientHandler(void * c)
 		recvResult = recv(client_socket, recvbuf, recvbuflen, 0);
 		if (recvResult > 0) {
 			cout << "RECIEVED: " << recvbuf << endl;
-			memcpy(sendbuf, ParseClientString(recvbuf, client), strlen(sendbuf));
+      //cout << "PARSED: " << ParseClientString(recvbuf, client) << endl;
+			memcpy(sendbuf, ParseClientString(recvbuf, client), BUFFER_LEN);
 			if ( i > 0) cout << "CONNECTED AS:" << client->is_logged_in() << endl;
 			cout << "sendbuf: " << sendbuf << endl;
 			i++;

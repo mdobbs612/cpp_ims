@@ -101,14 +101,27 @@ int main(int argc, char **argv)
 		memset(sendBuf, 0, BUFFER_LEN);
 		memset(recvBuf, 0, BUFFER_LEN);
 		//fgets(sendBuf, BUFFER_LEN, stdin);
-		char cmd[20];
-		char arg[20];
-		cin >> cmd >> arg;
+    char line[200];
+    cin.getline (line,200);
+    char *im;
+    char *cmd;  
+    char *arg;
+    
+    cmd = strtok(line, " \n");
+    arg = strtok(NULL, " \n");
+    if (strcmp(cmd, "im") == 0) {
+      im = strtok(NULL, " \n");
+      cout << cmd << arg << im << endl;
+    }
+
+    cout << cmd << arg << endl;
+		//cin >> cmd >> arg;
 		//memcpy(sendBuf, ParseInput(cmd, arg), strlen(sendBuf));
     //cout << "SENDING " << sendBuf << endl;
     cout << "PARSA " << ParseInput(cmd, arg) << endl;
 		cout << "SEND: " << send(ConnectSocket, ParseInput(cmd, arg), 244, 0) << endl;
 		recv(ConnectSocket, recvBuf, BUFFER_LEN, 0);
+    cout << "RECEIVED: " << recvBuf << endl;
 		ParseString(recvBuf);
 		//printf("%s", recvBuf);
 	}
@@ -119,12 +132,16 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+
+  
+
+
 const char*ParseInput(const char*cmd, const char* arg) {
-  cout << "Parsing Input\n";
+  //cout << "> Parsing Input\n";
 	if (!(strcmp("register", cmd))) {
-    cout << "Hi, in here with: " << arg << endl;
+    //cout << "Hi, in here with: " << arg << endl;
 		Action_Msg *msg;
-		msg = new Action_Msg(REGISTER, "testa", arg, "");
+		msg = new Action_Msg(REGISTER, "", arg, "");
     //cout << "SERLS " << msg->serialize() << endl;
 		return msg->serialize();
 	}

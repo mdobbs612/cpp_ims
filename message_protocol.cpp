@@ -35,14 +35,14 @@ Msg::Msg(MSG_TYPE t, const char *name)
 }
 
 const char * Action_Msg::serialize() {
-  cout << "SERIALIZING\n";
+  //cout << "SERIALIZING\n";
 	char *buffer = new char[250];
-  cout << "buffa " << buffer << endl;
+  //cout << "buffa " << buffer << endl;
 	buffer[0] = action_type;
   
 
 	const char *usr = Msg::get_username();
-  cout << "USERNAME: " << usr << endl;
+  //cout << "USERNAME: " << usr << endl;
 	int  len = strlen(usr);
 	buffer[1] = (char)len + 1;
 	for (int i = 0; i < 20; i++) {
@@ -50,8 +50,8 @@ const char * Action_Msg::serialize() {
     else buffer [i + 2] = '#';
 	}
 	const char *target = get_target();
-  cout << "TARGET: " << target << endl;
-  cout << "buffa " << buffer << endl;
+  //cout << "TARGET: " << target << endl;
+  //cout << "buffa " << buffer << endl;
 	len = strlen(target);
 	buffer[22] = (char)len + 1;
 	for (int i = 0; i < 20; i++) {
@@ -65,8 +65,8 @@ const char * Action_Msg::serialize() {
       else buffer[44 + i] = '#';
 	}
 	buffer[244] = '\0';
-  cout << "buffa 22: " << buffer[22] << endl;
-  cout << "buffa " << buffer << endl;
+  //cout << "buffa 22: " << buffer[22] << endl;
+  //cout << "buffa " << buffer << endl;
 	return buffer;
 };
 /*
@@ -102,6 +102,8 @@ const char * SerializeMsg(Msg *msg, char * buffer)
 */
 void ParseString(const char *buffer) {
 	MSG_TYPE t = (MSG_TYPE)buffer[0];
+  cout << "> Buffer is" << buffer << endl;
+  cout << "> TYpe is " << t << endl;
 	if (t == '1')  ParseConfirm(buffer);
 	//else if (t == '2')  ParseStatus(buffer);
 	else if (t == '3')  ParseError(buffer);
@@ -130,6 +132,9 @@ void ParseConfirm(const char *buffer) {
 		case ('1') :
 			cout << "SUCCESS: " << username << " logged in\n";
 			break;
+    case ('2') : 
+      cout << "SUCCESS: " << username << " logged out\n";
+      break;
 	}
 }
 

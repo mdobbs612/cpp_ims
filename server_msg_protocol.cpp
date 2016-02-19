@@ -25,15 +25,17 @@ const char *Confirm_Msg::serialize() {
 	const char *usr = Msg::get_username();
 	int  len = strlen(usr);
 	buffer[2] = (char)len + 1;
-	for (int i = 0; i < len; i++) {
-		buffer[i + 3] = usr[i];
+	for (int i = 0; i < 20; i++) {
+    if (i < len) buffer[i + 3] = usr[i];
+    else buffer [i + 3] = '#'; 
 	}
 
 	const char *target = get_target();
 	len = strlen(target);
 	buffer[23] = (char)len + 1;
-	for (int i = 0; i < len; i++) {
-		buffer[24 + i] = target[i];
+	for (int i = 0; i < 20; i++) {
+    if (i < len) buffer[i + 24] = target[i];
+    else buffer [i + 24] = '#';
 	}
 
 	buffer[44] = '\0';
@@ -88,7 +90,7 @@ const char *ParseClientString(const char *buffer, Client *client) {   // Since t
 	//const char *target_name = new const char[20];
 	//const char *message = new const char[200];
 
-	cout << "targ " << target_name << "other " << username << endl;
+	cout << "> targ " << target_name << " other " << username << endl;
 
 	int n_users = server_database.get_num_users();
 
@@ -100,7 +102,7 @@ const char *ParseClientString(const char *buffer, Client *client) {   // Since t
 			return loginUser(target_name, client);
 			break;
 		case('2') : //LOGOUT																	NEEDS ACTION
-			logoutUser(client);
+			return logoutUser(client);
 			break;
 
 	} 
@@ -117,9 +119,11 @@ const char * registerUser(const char *username, Client *client, int n_users) {
 		return msg->serialize();
 	}
 	else if (server_database.index_by_name(username) == -1) {
+    //cout << "> It was -1" << endl;
 		server_database.insert_user(username, n_users);
 		Confirm_Msg *msg;
 		msg = new Confirm_Msg(REGISTER, username, "");
+    cout << "> Sending: " << msg->serialize() << endl;
 		return msg->serialize();
 	}
 	else {
