@@ -3,6 +3,7 @@
 const char * registerUser(const char *username, Client *client, int n_users);
 const char * loginUser(const char *username, Client *client);
 const char *logoutUser(Client *client);
+const char * addFriend(const char *username, const char *target_name, Client *client);
 
 Action_Msg::Action_Msg(ACTION_TYPE typ, const char * name, const char * target, const char * msg) : Msg(ACTION, name)
 {
@@ -69,7 +70,6 @@ Msg::Msg(MSG_TYPE t, const char *name)
 }
 
 
-
 const char *ParseClientString(const char *buffer, Client *client) {   // Since the server only recieves action messages from user, probably maybe
 	char t = buffer[0];
 	int len = (int)buffer[1] - 1;
@@ -90,7 +90,7 @@ const char *ParseClientString(const char *buffer, Client *client) {   // Since t
 	//const char *target_name = new const char[20];
 	//const char *message = new const char[200];
 
-	cout << "> targ " << target_name << " other " << username << endl;
+	//cout << "> targ " << target_name << " other " << username << endl;
 
 	int n_users = server_database.get_num_users();
 
@@ -104,11 +104,16 @@ const char *ParseClientString(const char *buffer, Client *client) {   // Since t
 		case('2') : //LOGOUT																	NEEDS ACTION
 			return logoutUser(client);
 			break;
+    case('3') : //ADD FRIEND
+      return addFriend(username, target_name, client);
+      break;
 
 	} 
 
 	return "";
 }
+
+
 
 
 const char * registerUser(const char *username, Client *client, int n_users) {
@@ -170,3 +175,37 @@ const char *logoutUser(Client *client) {
 		return msg->serialize();
 	}
 }
+
+const char * addFriend(const char *username, const char *target_name, Client *client) {
+  int user_index = server_database.index_by_name(username);
+  int fr_index = server_database.index_by_name(target_name);
+  Err_Msg *emsg;
+  Confirm_Msg *msg;
+
+  if (fr_index == -1) {
+		emsg = new Err_Msg(USER_DNE, target_name);
+		return emsg->serialize();
+  } else if (strlen(username) >= 1) {
+    FRIEND_STATUS fr_status = server_database.friend_status(user_index, target_name);
+    switch(fr_status) {
+      case (NOT) : 
+        server_database.request_friend(user_index, target_name);
+        msg = new Confirm_Msg(ADD_FRIEND, username, target_name);
+		    return msg->serialize();
+        //send confirmation messages
+        break;
+      case (REQUESTED) :
+		    emsg = new Err_Msg(ALREADY_REQUESTED, target_name);
+		    return emsg->serialize();
+      case (PENDING) : 
+        server_database.accept_friend(user_index, target_name);
+        msg = new Confirm_Msg(ACPT_FRIEND, username, target_name);
+        return msg->serialize();
+        break;
+      case (YES) : 
+		    emsg = new Err_Msg(ALREADY_FRIENDS, target_name);
+		    return emsg->serialize();
+	    }
+    }
+}
+

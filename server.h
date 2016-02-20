@@ -61,11 +61,9 @@ public:
 
 	void request_friend(int user_ind, const char *friend_name);
 	void accept_friend(int user_ind, const char *friend_name);
-	//void reject_friend(const char *user, const char *friend); Can they keep trying? Notify friend? I dunno.
-	// Should be alright to leave as NO and REQUESTED and they can accept when they'd like?
+	
 
 	FRIEND_STATUS friend_status(int user_ind, const char *friend_name);
-	//const char **friend_list(const char *user); MAYBE make this just do the send message / ack and no return value
 
 	User *get_user_by_name(const char *name);
 	User *get_user_by_index(int ind);
@@ -131,7 +129,8 @@ enum ACTION_TYPE : char {
 	REM_FRIEND = '4',
 	STATUS_ALL = '5',
 	STATUS_ONE = '6',
-	MSG_FRIEND = '7'
+	MSG_FRIEND = '7', 
+  ACPT_FRIEND = '8'
 };
 
 enum ERROR_TYPE {
@@ -139,7 +138,9 @@ enum ERROR_TYPE {
 	USER_DNE = '1',
 	INVALID_NAME = '2',
 	NOT_LOGGED_IN = '3',
-	ALREADY_LOGGED_IN = '4'
+	ALREADY_LOGGED_IN = '4',
+  ALREADY_REQUESTED = '5',
+  ALREADY_FRIENDS = '6'
 };
 
 // This is what will be sent to and from the clients.

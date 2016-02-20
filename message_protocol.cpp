@@ -156,6 +156,12 @@ void ParseError(const char *buffer) {
 		case ('4') :
 			cout << "ERROR: Client already logged in\n";
 			break;
+    case ('5') :
+			cout << "ERROR: You already requested them\n";
+			break;
+    case ('6') :
+			cout << "ERROR: You're already friends\n";
+			break;
 		/*case ('2') :
 			cout << "ERROR: \n";
 			break;
