@@ -69,41 +69,13 @@ const char * Action_Msg::serialize() {
   //cout << "buffa " << buffer << endl;
 	return buffer;
 };
-/*
-const char * SerializeMsg(Msg *msg, char * buffer)
-{
-	MSG_TYPE t;
-	t = msg->get_msg_type();
-	buffer[0] = t;
-	if (t == 0) {
-		//buffer = SerializeAction_Msg((Action_Msg *)msg, buffer + 1);
-		Action_Msg *a_msg = (Action_Msg *)msg;
-		buffer = a_msg->serialize();
-	}
-	else if (t == 1) {
-		//buffer = SerializeConfirm_Msg((Confirm_Msg *)msg, buffer + 1);
-		Confirm_Msg *c_msg = (Confirm_Msg *)msg;
-		buffer = c_msg->serialize(buffer);
-	}
-	else if (t == 2) {
-		//buffer = SerializeStatus_Msg((Status_Msg *)msg, buffer + 1);
-		Status_Msg *s_msg = (Status_Msg *)msg;
-		buffer = s_msg->serialize(buffer);
-	}
-	else if (t == 3) {
-		//buffer = SerializeErr_Msg((Err_Msg *)msg, buffer + 1);
-		Err_Msg *e_msg = (Err_Msg *)msg;
-		buffer = e_msg->serialize(buffer);
-	}
-	else { return "error"; } //raise error somehow later
 
-	return buffer;
-}
-*/
+
+
 void ParseString(const char *buffer) {
 	MSG_TYPE t = (MSG_TYPE)buffer[0];
   cout << "> Buffer is" << buffer << endl;
-  cout << "> TYpe is " << t << endl;
+  cout << "> Type is " << t << endl;
 	if (t == '1')  ParseConfirm(buffer);
 	//else if (t == '2')  ParseStatus(buffer);
 	else if (t == '3')  ParseError(buffer);
@@ -135,6 +107,13 @@ void ParseConfirm(const char *buffer) {
     case ('2') : 
       cout << "SUCCESS: " << username << " logged out\n";
       break;
+    case ('3') : 
+      cout << "SUCCESS: " << target_name << " added\n";
+      break;
+    case ('8') : 
+      cout << "SUCCESS: " << target_name << " accepted as friend\n";
+      break;
+
 	}
 }
 
@@ -162,6 +141,12 @@ void ParseError(const char *buffer) {
     case ('6') :
 			cout << "ERROR: You're already friends\n";
 			break;
+    case ('7') :
+			cout << "ERROR: You can't be friends with yourself, sorry!\n";
+			break;
+    case ('8') :
+			cout << "ERROR: You are not friends at the moment\n";
+			break;
 		/*case ('2') :
 			cout << "ERROR: \n";
 			break;
@@ -174,3 +159,43 @@ void ParseError(const char *buffer) {
 
 	}
 }
+
+
+/*
+const char * SerializeMsg(Msg *msg, char * buffer)
+{
+	MSG_TYPE t;
+	t = msg->get_msg_type();
+	buffer[0] = t;
+
+	if (t == 0) {
+		//buffer = SerializeAction_Msg((Action_Msg *)msg, buffer + 1);
+		Action_Msg *a_msg = (Action_Msg *)msg;
+		buffer = a_msg->serialize();
+
+	}
+	else if (t == 1) {
+		//buffer = SerializeConfirm_Msg((Confirm_Msg *)msg, buffer + 1);
+
+		Confirm_Msg *c_msg = (Confirm_Msg *)msg;
+		buffer = c_msg->serialize(buffer);
+	}
+	else if (t == 2) {
+		//buffer = SerializeStatus_Msg((Status_Msg *)msg, buffer + 1);
+		Status_Msg *s_msg = (Status_Msg *)msg;
+		buffer = s_msg->serialize(buffer);
+
+	}
+	else if (t == 3) {
+		//buffer = SerializeErr_Msg((Err_Msg *)msg, buffer + 1);
+
+		Err_Msg *e_msg = (Err_Msg *)msg;
+		buffer = e_msg->serialize(buffer);
+	}
+
+	else { return "error"; } //raise error somehow later
+
+	return buffer;
+
+}
+*/

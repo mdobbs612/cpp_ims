@@ -119,7 +119,10 @@ enum ACTION_TYPE : char {
 	REM_FRIEND = '4',
 	STATUS_ALL = '5',
 	STATUS_ONE = '6',
-	MSG_FRIEND = '7'
+	MSG_FRIEND = '7', 
+  ACPT_FRIEND = '8',
+  DENY_FRIEND = '9',
+ 
 };
 
 enum ERROR_TYPE {
@@ -127,7 +130,11 @@ enum ERROR_TYPE {
 	USER_DNE = '1',
 	INVALID_NAME = '2',
 	NOT_LOGGED_IN = '3',
-	ALREADY_LOGGED_IN = '4'
+	ALREADY_LOGGED_IN = '4',
+  ALREADY_REQUESTED = '5',
+  ALREADY_FRIENDS = '6',
+  ADD_SELF = '7',
+  NOT_FRIENDS = '8'
 };
 
 // This is what will be sent to and from the clients.

@@ -46,6 +46,19 @@ void Database::request_friend(int user_ind, const char * friend_name)
 
 }
 
+
+void Database::remove_friend(int user_ind, const char * friend_name)
+{
+	int friend_ind = index_by_name(friend_name);
+
+	friend_matrix[user_ind][friend_ind] = NOT;
+	friend_matrix[friend_ind][user_ind] = NOT;
+
+	// ACK messages, Show the request up if they're online
+
+}
+
+
 void Database::accept_friend(int user_ind, const char * friend_name)
 {
 	int friend_ind = index_by_name(friend_name);
@@ -72,7 +85,7 @@ User * Database::get_user_by_name(const char * name)
 		if (strcmp(users[i]->get_name(), name) == 0) { return users[i]; }
 	}
 	cout << "ERROR: Couldn't find user " << name << endl;
-	return nullptr;
+	return new User();
 }
 
 User * Database::get_user_by_index(int ind)

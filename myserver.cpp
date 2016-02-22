@@ -5,6 +5,7 @@ void * StartServer(void * p);
 void * ClientHandler(void * c);
 
 Database server_database;
+Clients *server_clients;
 //client *ClientInit(SOCKET clientSocket, DWORD id);
 
 int main(void) {
@@ -21,7 +22,7 @@ void * StartServer(void * p)
 
 	pthread_t server_threads[MAX_CLIENTS];
 
-	Clients *server_clients;
+	
 	server_clients = new Clients();
 
 	int ListenSocket = -1;
@@ -40,6 +41,82 @@ void * StartServer(void * p)
      cout << "Listen Error\n";
      exit(0);
   }
+
+
+
+	int num_clients = 0;
+	int client_socket;
+
+	while (num_clients < MAX_CLIENTS) {
+    
+		client_socket = accept(ListenSocket, NULL, NULL);
+		pthread_t client_thread;
+		cout << "WE GOT ANOTHER" << endl;
+		Client *client;
+		client = new Client(client_thread, client_socket);
+
+		pthread_create(&client_thread, NULL, ClientHandler, (void *)client);
+		// add a line in case creation doesn't work?
+		
+		if (server_clients->new_client(client) != 0) {
+			cout << "WHAT HAPPENED" << endl;
+		} 
+		server_threads[num_clients] = client_thread;
+
+		num_clients++;
+	}
+
+  int i;
+  for( i = 0; i < num_clients; i++) {
+    pthread_join(server_threads[i], NULL);
+  }
+
+	exit(0);
+}
+
+void * ClientHandler(void * c)
+{
+	Client *client;
+	client = (Client *)c;
+	int i = 0;
+
+	int recvResult, sendResult;
+	char recvbuf[BUFFER_LEN];
+	char sendbuf[BUFFER_LEN];
+	int recvbuflen = BUFFER_LEN;
+	int client_socket = client->get_client_socket();
+
+	do {
+
+		recvResult = recv(client_socket, recvbuf, recvbuflen, 0);
+		if (recvResult > 0) {
+			cout << "RECIEVED: " << recvbuf << endl;
+			memcpy(sendbuf, ParseClientString(recvbuf, client), BUFFER_LEN);
+			if ( i > 0) cout << "CONNECTED AS:" << client->is_logged_in() << endl;
+
+			cout << "sendbuf: " << sendbuf << endl;
+			i++;
+			sendResult = send(client_socket, sendbuf, recvResult, 0);
+			if (sendResult < 0) {
+				cout << "Send failure!\n";
+				close(client_socket);
+				exit(0);
+			}
+		}
+		else if (recvResult == 0) {
+			cout << "Losing a client\n";
+      logoutUser(client);
+      close(client_socket);
+    }
+		else {
+			cout << "recv failure\n";
+			close(client_socket);
+		}
+
+	} while (recvResult > 0);
+
+}
+
 
 
 /*
@@ -92,77 +169,3 @@ void * StartServer(void * p)
 	}
 	
 */
-	int num_clients = 0;
-	int client_socket;
-  //struct sockaddr_storage remoteaddr
- // socklen_t addrlen;
-
-	while (num_clients < MAX_CLIENTS) {
-    //addrlen = sizeof remoteaddr;
-    //cout << "HEY" << endl;
-		client_socket = accept(ListenSocket, NULL, NULL);
-		pthread_t client_thread;
-		cout << "WE GOT ANOTHER" << endl;
-		Client *client;
-		client = new Client(client_thread, client_socket);
-
-		pthread_create(&client_thread, NULL, ClientHandler, (void *)client);
-		// add a line in case creation doesn't work?
-		
-		if (server_clients->new_client(client) != 0) {
-			cout << "WHAT HAPPENED" << endl;
-		} 
-		server_threads[num_clients] = client_thread;
-
-		num_clients++;
-	}
-
-  int i;
-  for( i = 0; i < num_clients; i++) {
-    pthread_join(server_threads[i], NULL);
-  }
-
-	exit(0);
-}
-
-void * ClientHandler(void * c)
-{
-	Client *client;
-	client = (Client *)c;
-	int i = 0;
-
-	int recvResult, sendResult;
-	char recvbuf[BUFFER_LEN];
-	char sendbuf[BUFFER_LEN];
-	int recvbuflen = BUFFER_LEN;
-	int client_socket = client->get_client_socket();
-
-	do {
-
-		recvResult = recv(client_socket, recvbuf, recvbuflen, 0);
-		if (recvResult > 0) {
-			cout << "RECIEVED: " << recvbuf << endl;
-      //cout << "PARSED: " << ParseClientString(recvbuf, client) << endl;
-			memcpy(sendbuf, ParseClientString(recvbuf, client), BUFFER_LEN);
-			if ( i > 0) cout << "CONNECTED AS:" << client->is_logged_in() << endl;
-			cout << "sendbuf: " << sendbuf << endl;
-			i++;
-			sendResult = send(client_socket, sendbuf, recvResult, 0);
-			if (sendResult < 0) {
-				cout << "Send failure!\n";
-				close(client_socket);
-				exit(0);
-			}
-		}
-		else if (recvResult == 0)
-			printf("Connection closing...\n");
-		else {
-			cout << "recv failure\n";
-			close(client_socket);
-			exit(0);
-		}
-
-	} while (recvResult > 0);
-
-	exit(0);
-}

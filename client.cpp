@@ -4,21 +4,19 @@
 
 #define PORT_NO "27012"
 
+
+void * ListenHandler(void * s);
+
 int main(int argc, char **argv)
 {
 	printf("Client\n");
 	int err;
 
 	int ConnectSocket = -1;
-
-	//struct addrinfo *result = NULL, *res_ptr = NULL, hints;
+  pthread_t listenThread;
 
 	char sendBuf[BUFFER_LEN];
-	char recvBuf[BUFFER_LEN];
-	// int recvResult;
-	// int sendResult;
-
-	// check if the input was done correctly
+	//char recvBuf[BUFFER_LEN];
 	if (argc != 2) {
 		fprintf(stderr, "usage: call client.exe with the server-name as the first parameter\n");
 		return 1;
@@ -53,53 +51,14 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  int * cs = &ConnectSocket;
 
+  pthread_create(&listenThread, NULL, ListenHandler, (void *)cs);
 
-/*
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-
-	// server address and port
-	err = getaddrinfo(NULL, PORT_NO, &hints, &result);
-	if (err != 0) {
-		fprintf(stderr, "getaddrinfo failure. Error: %d\n", err);
-		return 1;
-	}
-
-	// try connecting to addr in result until one succeeds
-	for (res_ptr = result; res_ptr != NULL; res_ptr = res_ptr->ai_next) {
-
-		ConnectSocket = socket(res_ptr->ai_family, res_ptr->ai_socktype,
-			res_ptr->ai_protocol);
-		if (ConnectSocket < 0) {
-      cout << "Socket failure!\n";
-			return 1;
-		}
-
-		err = connect(ConnectSocket, res_ptr->ai_addr,
-			(int)res_ptr->ai_addrlen);
-		if (err != 0) {
-			close(ConnectSocket);
-			ConnectSocket = -1;
-      cout << "Connect errrror\n" << err << endl;
-			continue;
-		}
-		else break;
-	}
-
-	freeaddrinfo(result);
-
-	if (ConnectSocket == -1) {
-		cout << "Error connecting to server\n";
-		return 1;
-	}
-	*/
 
 	while (1) {
 		memset(sendBuf, 0, BUFFER_LEN);
-		memset(recvBuf, 0, BUFFER_LEN);
+		//memset(recvBuf, 0, BUFFER_LEN);
 		//fgets(sendBuf, BUFFER_LEN, stdin);
     char line[200];
     cin.getline (line,200);
@@ -108,21 +67,27 @@ int main(int argc, char **argv)
     char *arg;
     
     cmd = strtok(line, " \n");
-    arg = strtok(NULL, " \n");
+    //if (strcmp(cmd, "logout" == 0) {
+      arg = strtok(NULL, " \n");
+   // }
     if (strcmp(cmd, "im") == 0) {
       im = strtok(NULL, " \n");
-      cout << cmd << arg << im << endl;
+      //cout << cmd << arg << im << endl;
     }
 
-    cout << cmd << arg << endl;
+    if (strcmp(cmd, "exit") == 0) {
+      break;
+    }
+
+    //cout << cmd << arg << endl;
 		//cin >> cmd >> arg;
 		//memcpy(sendBuf, ParseInput(cmd, arg), strlen(sendBuf));
     //cout << "SENDING " << sendBuf << endl;
     cout << "PARSA " << ParseInput(cmd, arg) << endl;
 		cout << "SEND: " << send(ConnectSocket, ParseInput(cmd, arg), 244, 0) << endl;
-		recv(ConnectSocket, recvBuf, BUFFER_LEN, 0);
-    cout << "RECEIVED: " << recvBuf << endl;
-		ParseString(recvBuf);
+		
+    //cout << "RECEIVED: " << recvBuf << endl;
+		//ParseString(recvBuf);
 		//printf("%s", recvBuf);
 	}
 
@@ -189,3 +154,69 @@ const char*ParseInput(const char*cmd, const char* arg) {
 
 	return "OOps\n";
 } 
+
+
+void * ListenHandler(void * s)
+{
+  int ConnectSocket = *((int *) s);
+  char recvBuf[BUFFER_LEN];
+
+
+  while(1) {
+    memset(recvBuf, 0, BUFFER_LEN);
+    recv(ConnectSocket, recvBuf, BUFFER_LEN, 0);
+    ParseString(recvBuf);
+  }
+}
+
+
+/*
+	memset(&hints, 0, sizeof(hints));
+
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+
+	// server address and port
+	err = getaddrinfo(NULL, PORT_NO, &hints, &result);
+
+	if (err != 0) {
+		fprintf(stderr, "getaddrinfo failure. Error: %d\n", err);
+		return 1;
+	}
+
+
+	// try connecting to addr in result until one succeeds
+	for (res_ptr = result; res_ptr != NULL; res_ptr = res_ptr->ai_next) {
+
+
+		ConnectSocket = socket(res_ptr->ai_family, res_ptr->ai_socktype,
+			res_ptr->ai_protocol);
+
+		if (ConnectSocket < 0) {
+      cout << "Socket failure!\n";
+			return 1;
+
+		}
+
+		err = connect(ConnectSocket, res_ptr->ai_addr,
+			(int)res_ptr->ai_addrlen);
+
+		if (err != 0) {
+			close(ConnectSocket);
+			ConnectSocket = -1;
+
+      cout << "Connect errrror\n" << err << endl;
+			continue;
+		}
+		else break;
+	}
+
+	freeaddrinfo(result);
+
+	if (ConnectSocket == -1) {
+		cout << "Error connecting to server\n";
+		return 1;
+	}
+	*/

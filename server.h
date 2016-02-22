@@ -40,8 +40,11 @@ class User {
 
 public:
 	User(const char *name, int ind) : username(name), index(ind) { active_status = INACTIVE; }
+  User() { username = "\0"; index = -1; active_status = INACTIVE; }
 	int get_index() { return index; }
 	const char *get_name() { return username; }
+  ACTIVE_STATUS get_status() { return active_status; }
+  void is_online() {active_status = ACTIVE;}
 };
 
 
@@ -61,7 +64,7 @@ public:
 
 	void request_friend(int user_ind, const char *friend_name);
 	void accept_friend(int user_ind, const char *friend_name);
-	
+	void remove_friend(int user_ind, const char *friend_name);
 
 	FRIEND_STATUS friend_status(int user_ind, const char *friend_name);
 
@@ -83,7 +86,7 @@ public:
 	pthread_t get_id() { return id; }
 	int get_client_socket() { return client_socket; }
 	const char *get_username() { return user_bound->get_name(); }
-	void connect_user(User *usr) { user_bound = usr; logged_in = 1; }
+	void connect_user(User *usr) { user_bound = usr; logged_in = 1; usr->is_online(); }
 	void logout_user() { user_bound = NULL; logged_in = 0; }
 
 
@@ -103,6 +106,8 @@ class Clients {
 public:
 	Clients() { num_clients = 0; clients = new Client*[MAX_CLIENTS]; };
 	int new_client(Client *client) { clients[num_clients] = client; num_clients++; return 0; }
+  Client * get_client_by_name(const char *name);
+  int get_socket_by_name(const char *name);
 };
 
 const char *ParseClientString(const char *buffer, Client *client);
@@ -130,7 +135,8 @@ enum ACTION_TYPE : char {
 	STATUS_ALL = '5',
 	STATUS_ONE = '6',
 	MSG_FRIEND = '7', 
-  ACPT_FRIEND = '8'
+  ACPT_FRIEND = '8',
+  DENY_FRIEND = '9'
 };
 
 enum ERROR_TYPE {
@@ -140,7 +146,9 @@ enum ERROR_TYPE {
 	NOT_LOGGED_IN = '3',
 	ALREADY_LOGGED_IN = '4',
   ALREADY_REQUESTED = '5',
-  ALREADY_FRIENDS = '6'
+  ALREADY_FRIENDS = '6',
+  ADD_SELF = '7',
+  NOT_FRIENDS = '8'
 };
 
 // This is what will be sent to and from the clients.
@@ -211,3 +219,12 @@ void ParseErr_Msg(Err_Msg msg);
 const char *SerializeMsg(Msg msg, const char *buffer);
 
 extern Database server_database;
+extern Clients *server_clients;
+
+const char * registerUser(const char *username, Client *client, int n_users);
+const char * loginUser(const char *username, Client *client);
+const char * logoutUser(Client *client);
+const char * addFriend(const char *target_name, Client *client);
+const char * remFriend(const char *target_name, Client *client);
+const char * sendIM(const char * target_name, Client * client);
+ACTIVE_STATUS userOnline(const char *username);

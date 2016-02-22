@@ -1,9 +1,23 @@
 #include "server.h"
 
-const char * registerUser(const char *username, Client *client, int n_users);
-const char * loginUser(const char *username, Client *client);
-const char *logoutUser(Client *client);
-const char * addFriend(const char *username, const char *target_name, Client *client);
+
+
+
+Client * Clients::get_client_by_name(const char *name) {
+  for(int i = 0; i < num_clients; i++) {
+    if( strcmp(clients[i]->get_username(), name) == 0) return clients[i];
+  }
+  return nullptr;
+}
+
+
+int Clients::get_socket_by_name(const char *name) {
+  for(int i = 0; i < num_clients; i++) {
+    if( strcmp(clients[i]->get_username(), name) == 0) return clients[i]->get_client_socket();
+  }
+  return -1;
+}
+
 
 Action_Msg::Action_Msg(ACTION_TYPE typ, const char * name, const char * target, const char * msg) : Msg(ACTION, name)
 {
@@ -70,8 +84,19 @@ Msg::Msg(MSG_TYPE t, const char *name)
 }
 
 
+
+void sendToUser(const char *username, const char *msg) {
+  if (userOnline(username) == ACTIVE) {
+    Client *client = server_clients->get_client_by_name(username);
+    int ConnectSocket = client->get_client_socket();
+    int res = send(ConnectSocket, msg, strlen(msg), 0);
+  }
+}
+
+
+
 const char *ParseClientString(const char *buffer, Client *client) {   // Since the server only recieves action messages from user, probably maybe
-	char t = buffer[0];
+  char t = buffer[0];
 	int len = (int)buffer[1] - 1;
 
 	char *username = new char[len + 1];
@@ -105,19 +130,27 @@ const char *ParseClientString(const char *buffer, Client *client) {   // Since t
 			return logoutUser(client);
 			break;
     case('3') : //ADD FRIEND
-      return addFriend(username, target_name, client);
+      return addFriend(target_name, client);
       break;
-
+    case('4') : //REMOVE FRIEND
+      return remFriend(target_name, client);
+      break;
+    case('7') : //SEND MESSAGE
+      return sendIM(target_name, client);
+      break;
 	} 
 
 	return "";
 }
 
 
+ACTIVE_STATUS userOnline(const char *username) {
+  return server_database.get_user_by_name(username)->get_status();
+}
 
 
 const char * registerUser(const char *username, Client *client, int n_users) {
-	cout << "Trying to register\n";
+  
 	if (client->is_logged_in()) {
 		Err_Msg *msg;
 		msg = new Err_Msg(ALREADY_LOGGED_IN, "");
@@ -139,17 +172,21 @@ const char * registerUser(const char *username, Client *client, int n_users) {
 }
 
 const char * loginUser(const char *username, Client *client) {
-	cout << "Trying to login\n";
+  cout << "ACTIVE STATUS IS " << userOnline(username) << endl;
 	if (client->is_logged_in()) {
 		Err_Msg *msg;
 		msg = new Err_Msg(ALREADY_LOGGED_IN, "");
 		return msg->serialize();
 	}
+  else if (userOnline(username) == ACTIVE) {
+    Err_Msg *msg;
+		msg = new Err_Msg(ALREADY_LOGGED_IN, "");
+		return msg->serialize();
+  }
 	else if (server_database.index_by_name(username) != -1) {
 		Confirm_Msg *msg;
 		msg = new Confirm_Msg(LOGIN, username, "");
 		User *user = server_database.get_user_by_name(username);
-		cout << "connecting: " << username << endl;
 		client->connect_user(user);
 		return msg->serialize();
 	}
@@ -161,22 +198,24 @@ const char * loginUser(const char *username, Client *client) {
 }
 
 const char *logoutUser(Client *client) {
-	cout << "logging out " << endl;
-	const char *curr_username = client->get_username();
-	if (strlen(curr_username) >= 1) {
+  cout << "Called logoutUser\n";
+	//const char *curr_username = client->get_username();
+  cout << "Is logged in: " << client->is_logged_in() << endl;
+	if (client->is_logged_in() == 1) {
 		client->logout_user();
 		Confirm_Msg *msg;
-		msg = new Confirm_Msg(LOGOUT, curr_username, "");
+		msg = new Confirm_Msg(LOGOUT, "", "");
 		return msg->serialize();
 	}
 	else {
 		Err_Msg *msg;
-		msg = new Err_Msg(NOT_LOGGED_IN, curr_username);
+		msg = new Err_Msg(NOT_LOGGED_IN, "");
 		return msg->serialize();
 	}
 }
 
-const char * addFriend(const char *username, const char *target_name, Client *client) {
+const char * addFriend(const char *target_name, Client *client) {
+  const char *username = client->get_username();
   int user_index = server_database.index_by_name(username);
   int fr_index = server_database.index_by_name(target_name);
   Err_Msg *emsg;
@@ -185,8 +224,14 @@ const char * addFriend(const char *username, const char *target_name, Client *cl
   if (fr_index == -1) {
 		emsg = new Err_Msg(USER_DNE, target_name);
 		return emsg->serialize();
-  } else if (strlen(username) >= 1) {
+  } 
+  else if (strcmp (username, target_name) == 0) {
+    emsg = new Err_Msg(ADD_SELF, target_name);
+    return emsg->serialize();
+  }
+  else {
     FRIEND_STATUS fr_status = server_database.friend_status(user_index, target_name);
+
     switch(fr_status) {
       case (NOT) : 
         server_database.request_friend(user_index, target_name);
@@ -197,6 +242,7 @@ const char * addFriend(const char *username, const char *target_name, Client *cl
       case (REQUESTED) :
 		    emsg = new Err_Msg(ALREADY_REQUESTED, target_name);
 		    return emsg->serialize();
+        break;
       case (PENDING) : 
         server_database.accept_friend(user_index, target_name);
         msg = new Confirm_Msg(ACPT_FRIEND, username, target_name);
@@ -205,7 +251,58 @@ const char * addFriend(const char *username, const char *target_name, Client *cl
       case (YES) : 
 		    emsg = new Err_Msg(ALREADY_FRIENDS, target_name);
 		    return emsg->serialize();
+        break;
 	    }
     }
+   return "hello\n";
+}
+
+
+const char * remFriend(const char *target_name, Client *client) {
+  const char *username = client->get_username();
+  int user_index = server_database.index_by_name(username);
+  int fr_index = server_database.index_by_name(target_name);
+  Err_Msg *emsg;
+  Confirm_Msg *msg;
+
+  if (fr_index == -1) {
+		emsg = new Err_Msg(USER_DNE, target_name);
+		return emsg->serialize();
+  } 
+  else if (strcmp (username, target_name) == 0) {
+    emsg = new Err_Msg(ADD_SELF, target_name);
+    return emsg->serialize();
+  }
+  else {
+    FRIEND_STATUS fr_status = server_database.friend_status(user_index, target_name);
+
+    switch(fr_status) {
+      case (NOT) : 
+        emsg = new Err_Msg(NOT_FRIENDS, target_name);
+		    return emsg->serialize();
+        break;
+      case (REQUESTED) :
+		    server_database.remove_friend(user_index, target_name);
+        msg = new Confirm_Msg(ADD_FRIEND, username, target_name);
+		    return msg->serialize();
+        break;
+      case (PENDING) : 
+        server_database.remove_friend(user_index, target_name);
+        msg = new Confirm_Msg(DENY_FRIEND, username, target_name);
+        return msg->serialize();
+        break;
+      case (YES) : 
+		    server_database.remove_friend(user_index, target_name);
+        msg = new Confirm_Msg(REM_FRIEND, username, target_name);
+        return msg->serialize();
+        break;
+	    }
+    }
+   return "hello\n";
+}
+
+
+const char * sendIM(const char * target_name, Client * client) {
+  const char *username = client->get_username();
 }
 
